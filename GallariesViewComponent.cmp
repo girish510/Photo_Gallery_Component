@@ -1,0 +1,232 @@
+<!--
+* @Description : This Component Is used to Show Galleries Record View On Inventory record tab.
+* @Author : Girish Nagar    
+* @Date : 06-01-2021
+ -->
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,force:hasRecordId,flexipage:availableForRecordHome,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global" controller="GallariesViewController" >
+    <aura:attribute name="objectType" type="String" />
+    <aura:attribute name="allData" type="List" />
+    <aura:attribute name="filteredData" type="List" />
+    <aura:attribute name="tableData" type="List" />
+    <aura:attribute name="columns" type="Object[]" />
+    <aura:attribute type="Object[]" name="selectedGalleries"  />
+    <aura:attribute name="pageSize" type="Integer" default="15" />
+    <aura:attribute name="pageSizeOptions" type="Integer[]" default="10,15,20,25,50,100" />
+    <aura:attribute name="currentPageNumber" type="Integer" default="1" />
+    <aura:attribute name="totalPages" type="Integer" default="1" />
+    <aura:attribute name="searchPhrase" type="String" />
+    <aura:attribute name="isLoading" type="Boolean" default="false" />
+    <aura:attribute name="showConfirmDialog" type="boolean" default="false"/>
+    <aura:attribute name="imageUrl" type="String"/>
+    <aura:attribute name="imageName" type="String"/>
+    <aura:attribute name="isModalOpen" type="boolean" default="false"/>
+    <aura:attribute name="isPDF" type="boolean" default="false"/>
+    <aura:attribute name="draftValues" type="Object" default="[]"/>
+    <aura:attribute name="buttonId" type="String"/>
+    <aura:attribute name="sortDirection" type="String" default="asc" />
+    <aura:attribute name="sortedBy" type="String" />
+    <aura:attribute name="recId" type="String" />
+    
+    <aura:handler name="init" value="{! this }" action="{! c.doInit }" />
+     <aura:html tag="style" >
+         img:hover {
+        -webkit-transform:scale(1.5); /* Safari and Chrome */
+        -moz-transform:scale(1.5); /* Firefox */
+        -ms-transform:scale(1.5); /* IE 9 */
+        -o-transform:scale(1.5); /* Opera */
+        transform:scale(1.5);
+         cursor: zoom-in;
+        }
+        img{
+        -webkit-transition: all 1s ease; /* Safari and Chrome */
+        -moz-transition: all 1s ease; /* Firefox */
+        -ms-transition: all 1s ease; /* IE 9 */
+        -o-transition: all 1s ease; /* Opera */
+        transition: all 1s ease;
+         max-width:100%;
+         width:100vw;
+         height:78vh;
+         max-height:100%;
+         object-fit: contain; 
+        }
+         .slds-modal__container{
+         max-width: 60rem !important;
+         width:60% !important;
+         }
+    </aura:html> 
+   
+    
+    <aura:if isTrue="{! v.isLoading }">
+        <lightning:spinner alternativeText="Loading" />
+    </aura:if>
+    <div class="slds-clearfix">
+        <div class="slds-float_right">
+         <a onclick="{! c.refreshGallery }" >Refresh Gallery</a>
+        </div>
+    </div>
+   <div class="slds-p-around_small slds-grid slds-grid_align-spread slds-grid_vertical-align-start">
+        <div>
+            <lightning:select
+                              label="Number of records on page:"
+                              value="{! v.pageSize }"
+                              onchange="{! c.onPageSizeChange }">
+                <aura:iteration items="{! v.pageSizeOptions }" var="opt">
+                    <option text="{! opt }"></option>
+                </aura:iteration>
+            </lightning:select>
+        </div>
+        <div>
+            <lightning:button
+                              label="First"
+                              iconName="utility:left"
+                              iconPosition="left"
+                              onclick="{! c.onFirst }"
+                              disabled="{! v.currentPageNumber == 1 }" />
+            <lightning:button
+                              label="Previous"
+                              iconName="utility:chevronleft"
+                              iconPosition="left"
+                              onclick="{! c.onPrev }"
+                              disabled="{! v.currentPageNumber == 1 }" />
+            <span class="slds-var-p-horizontal_x-small">
+                Page {! (v.currentPageNumber) } of {! (v.totalPages) }
+            </span>
+            <span class="slds-var-p-horizontal_x-small">
+                Number of records: {! (v.filteredData.length) }
+            </span>
+            <lightning:button
+                              label="Next"
+                              iconName="utility:chevronright"
+                              iconPosition="right"
+                              onclick="{! c.onNext }"
+                              disabled="{! v.currentPageNumber == v.totalPages }" />
+            <lightning:button
+                              label="Last"
+                              iconName="utility:right"
+                              iconPosition="right"
+                              onclick="{! c.onLast }"        
+                              disabled="{! v.currentPageNumber == v.totalPages }" />
+        </div>
+        <div class="inline-container">
+            <span class="padding-right">
+                <lightning:input
+                                 variant="label-hidden"
+                                 placeholder="Search Phrase"
+                                 type="search"
+                                 value="{! v.searchPhrase }"
+                                 onchange="{! c.onChangeSearchPhrase }" />
+            </span>
+        </div>
+    </div>
+   
+    <lightning:datatable
+                         aura:id="table"
+                         columns="{! v.columns }"
+                         data="{! v.tableData }"
+                         onrowaction="{!c.viewRecord}"                
+                         sortedDirection="{!v.sortDirection}"
+                         sortedBy="{!v.sortedBy}"
+                         onsort="{!c.handleSort}" 
+                         hideCheckboxColumn="true"
+                         showRowNumberColumn="true" 
+                         draftValues="{! v.draftValues }"
+                         onsave="{! c.handleSaveEdition }"
+                         keyField="Id" />
+    <div class="slds-p-around_small slds-grid slds-grid_align-spread slds-grid_vertical-align-start">
+        <div style="margin-left:25%;">
+            <lightning:button
+                              label="First"
+                              iconName="utility:left"
+                              iconPosition="left"
+                              onclick="{! c.onFirst }"
+                              disabled="{! v.currentPageNumber == 1 }" />
+            <lightning:button
+                              label="Previous"
+                              iconName="utility:chevronleft"
+                              iconPosition="left"
+                              onclick="{! c.onPrev }"
+                              disabled="{! v.currentPageNumber == 1 }" />
+            <span class="slds-var-p-horizontal_x-small">
+                Page {! (v.currentPageNumber) } of {! (v.totalPages) }
+            </span>
+            <span class="slds-var-p-horizontal_x-small">
+                Number of records: {! (v.filteredData.length) }
+            </span>
+            <lightning:button
+                              label="Next"
+                              iconName="utility:chevronright"
+                              iconPosition="right"
+                              onclick="{! c.onNext }"
+                              disabled="{! v.currentPageNumber == v.totalPages }" />
+            <lightning:button
+                              label="Last"
+                              iconName="utility:right"
+                              iconPosition="right"
+                              onclick="{! c.onLast }"        
+                              disabled="{! v.currentPageNumber == v.totalPages }" />
+        </div>
+    </div>
+   
+<!-- Modal/Popup Box  toshow Image starts here-->
+    <aura:if isTrue="{!v.isModalOpen}">
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal  slds-fade-in-open">
+            <div class="slds-modal__container">
+                <br/><br/>
+                <!-- Modal/Popup Box Header Starts here-->
+                <header class="slds-modal__header slds-modal__header_empty">
+                    <lightning:buttonIcon iconName="utility:close"
+                                          onclick="{! c.closeModel }"
+                                          alternativeText="close"
+                                          variant="bare-inverse"
+                                          class="slds-modal__close"/>
+                </header>
+                <!--Modal/Popup Box Body Starts here-->
+               <aura:if isTrue="{!v.isPDF}">
+                    <iframe style="border: 1px solid" src="{!v.imageUrl}" type="application/pdf" width="98%" height="98%"/>
+                <aura:set attribute="else">
+                    <img src="{!v.imageUrl}" />
+                    </aura:set>
+                </aura:if>
+                <br/>
+                <center>
+                <lightning:buttonIcon iconName="utility:chevronleft" variant="brand" onclick="{! c.preImgAction }" alternativeText="Previous" title="Previous" /> &nbsp;&nbsp;&nbsp;&nbsp;
+                <lightning:buttonIcon iconName="utility:chevronright" variant="brand" onclick="{! c.nextImgAction }" alternativeText="Next" title="Next" />
+                </center> 
+                <center><a href="{!v.imageUrl}" target="_blank"><h2 style="color:white;font-size:20px;">{!v.imageName}</h2></a></center>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>
+ <!-- Modal/Popup Box  toshow Image End here-->
+ 
+    <!--Delete Confirmation Modal Box Start-->
+     <div class="slds-m-around_xx-large">
+        <aura:if isTrue="{!v.showConfirmDialog}">
+            <!--Modal Box Start-->
+            <div role="dialog" class="slds-modal slds-fade-in-open ">
+                <div class="slds-modal__container">
+                    <!--Modal Box Header Start-->
+                    <header class="slds-modal__header">
+                        <h1 class="slds-text-heading--medium">Confirmation</h1>
+                    </header>
+                    <!--Modal Box Header End-->
+                    
+                    <!--Modal Box Content Start-->
+                    <div class="slds-modal__content slds-p-around--medium">
+                            <center><b>Are you sure you want to delete this item?</b></center>
+                     </div>
+                    <!--Modal Box Content End-->
+                    
+                    <!--Modal Box Button Start-->
+                    <footer class="slds-modal__footer">
+                        <lightning:button name='No' label='No' onclick='{!c.handleConfirmDialogNo}'/>
+                        <lightning:button variant="brand" name='Yes' label='Yes' onclick='{!c.handleConfirmDialogYes}'/>
+                    </footer> 
+                    <!--Modal Box Button End-->
+                </div>
+            </div>
+            <div class="slds-backdrop slds-backdrop--open"></div>            
+        </aura:if>
+    </div>
+ <!--Delete Confirmation Modal Box End-->
+</aura:component>
